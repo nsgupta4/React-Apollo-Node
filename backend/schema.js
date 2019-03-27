@@ -1,5 +1,6 @@
 import {
-    makeExecutableSchema
+    makeExecutableSchema,
+    
 } from 'graphql-tools';
 import resolvers from './resolvers';
 
@@ -21,10 +22,10 @@ const typeDefs = [`
         author(name: String!): Author
     }
     type Mutation {
-        updateBook(id: String!, title: String!): Book
         addBook(title: String!, author: String!): Book
+        updateBook(id: String!, authorId: String!, title: String!, author: String!): Book
+        deleteBook(id: String!, authorId: String!): Book
         addAuthor(name: String!, book: String!): Author
-        deleteBook(id: String!): Book
     }
 `];
 

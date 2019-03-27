@@ -7,8 +7,6 @@ import {
     ModalFooter,
     Row,
     Col,
-    Card,
-    CardBody,
 } from 'reactstrap';
 import {
     connect
@@ -24,18 +22,22 @@ import {
     Mutation
 } from "react-apollo";
 
-const updateMutation = gql `mutation updateBook($title: String!, $author: String!) {
-											updateBook(title: $title, author: $author) {
-													title
-													author
-											}
-									}`;
+const updateMutation = gql `mutation updateBook($id: String!, $authorId: String!, $title: String!, $author: String!) {
+	updateBook(id: $id, authorId: $authorId, title: $title, author: $author) {
+			id
+			title
+			author {
+				id
+				name
+			}
+	}
+}`;
 
-const deleteMutation = gql `mutation deleteBook($id: String!) {
-											deleteBook(id: $id) {
-													title
-											}
-									}`;
+const deleteMutation = gql `mutation deleteBook($id: String!, $authorId: String!) {
+	deleteBook(id: $id, authorId: $authorId) {
+			title
+	}
+}`;
 
 class UpdateModal extends React.Component {
 	constructor(props) {
@@ -63,15 +65,19 @@ class UpdateModal extends React.Component {
 		props.book.title && props.initialize(initData);
 	}
 	handleForm = (values, mutate, data) => {
-		console.log('handleForm', this.props);
-		data ? mutate({
+		const { book, deleteToggle } = this.props;
+		console.log('handleForm', this.props, values, data);
+		deleteToggle ? mutate({
 			variables: {
-				title: values.Title,
-				author: values.Author,
+				id: book.bookId,
+				authorId: book.authorId,
 			}
 		}) : mutate({
 			variables: {
-				id: this.props.book.id
+				id: book.bookId,
+				authorId: book.authorId,
+				title: values.title,
+				author: values.author,
 			}
 		});
 	};
@@ -90,7 +96,7 @@ class UpdateModal extends React.Component {
         <Modal isOpen={modal} toggle={toggle} className={this.props.className}>
           <ModalHeader toggle={toggle}>Modal title</ModalHeader>
           <ModalBody>
-            <Mutation mutation={book && book.id ? deleteMutation : updateMutation}>
+            <Mutation mutation={book && !book.author ? deleteMutation : updateMutation}>
 						{(mutate, { data }) => {
 					 		return (
 								 <React.Fragment>

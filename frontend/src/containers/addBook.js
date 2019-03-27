@@ -17,6 +17,7 @@ import {
 import validate from '../components/validate';
 import gql from 'graphql-tag';
 import { Mutation } from "react-apollo";
+import './style.css';
 
 class AddBook extends React.Component {
 	render () {
@@ -35,17 +36,22 @@ class AddBook extends React.Component {
 				<Mutation mutation={
 					gql `mutation addBook($title: String!, $author: String!) {
 									addBook(title: $title, author: $author) {
+											id
 											title
+											author {
+												id
+												name
+											}
 									}
 							}
 					`}>
-					{(mutate, { data }) => (
-						<Card>
-						<CardBody>						
+					{(mutate, { data }) => (					
 						<Row>
 							<Col md="4">
 							</Col>
-							<Col md="4">
+							<Col md="4" className="addBook">
+								<Card>
+								<CardBody>	
 								<form onSubmit={handleSubmit((values) => handleForm(values, mutate, data))}>
 									<Field
 										name="Title"
@@ -59,18 +65,18 @@ class AddBook extends React.Component {
 										type="text"
 										placeholder="author"
 									/>
-									<div>
+									<div className="button_primary">
 										<Button type="submit" disabled={pristine}>
 											ADD
 										</Button>
 									</div>
-								</form>
+									</form>
+									</CardBody>
+								</Card>
 							</Col>
 							<Col md="4">
 							</Col>
 						</Row>
-						</CardBody>
-						</Card>
 					)}
     		</Mutation>
 			</React.Fragment>	
