@@ -2,15 +2,34 @@ import BooksData from './schema/booksSchema';
 import AuthorsData from './schema/authorSchema';
 import mongoose, { Collection } from 'mongoose';
 
+// const findBook = (id) => new Promise((resolve, reject) => {
+//     const result = [];
+//     BooksData.findOne({ _id: id }).populate('authorId').exec(),
+//         (err, response) => {
+//             if (err) reject(err);
+//             else resolve(() => {
+//                 result.push({
+//                     id: response._id.toString(),
+//                     title: response.title,
+//                     author: {
+//                         id: response.authorId._id.toString(),
+//                         name: response.authorId.name,
+//                     }
+//                 });
+//                 console.log('ha ha ', result);
+//                 return result;
+//             });
+//         }
+// });
+
 const addBook = (title, authorId, bookId) => new Promise((resolve, reject) => {
     BooksData.create({
         title,
         authorId,
         _id: bookId
-    }, (err, result) => {
-        if (err) reject(err);
-        else resolve(result);
-    });
+    }).then((result) => {
+        resolve(result);
+    }).catch(error => reject(error));
 });
 
 const updateBook = (id, title) => new Promise((resolve, reject) => {
@@ -18,11 +37,31 @@ const updateBook = (id, title) => new Promise((resolve, reject) => {
         _id: id 
     }, {
         "$set" : {title: title} 
-    }, 
-    (err, result) => {
-        if(err) reject(err);
-        else resolve(result);
-    });
+        }, { "new": true }).exec((err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        });
+});
+
+const addAuthor = (name, booksId, authorId) => new Promise((resolve, reject) => {
+    AuthorsData.create({
+        name,
+        booksId,
+        _id: authorId
+    }).then((result) => {
+        resolve(result);
+    }).catch(error => reject(error));
+});
+
+const updateAuthor = (id, name) => new Promise((resolve, reject) => {
+    AuthorsData.findOneAndUpdate({
+        _id: id
+    }, {
+            "$set": { name: name }
+        }, { "new": true }).exec((err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        });
 });
 
 const deleteBook = (id) => new Promise((resolve, reject) => {
@@ -39,32 +78,6 @@ const deleteAuthor = (id) => new Promise((resolve, reject) => {
         "_id": id
     }, (err, result) => {
         if (err) reject(err);
-        else resolve(result);
-    });
-});
-
-const addAuthor = (name, booksId, authorId) => new Promise((resolve, reject) => {
-    AuthorsData.create({
-        name,
-        booksId,
-        _id: authorId
-    }, (err, result) => {
-        if (err) reject(err);
-        else {
-            console.log('addAuthor success', result);
-            resolve(result);
-        }
-    });
-});
-
-const updateAuthor = (id, name) => new Promise((resolve, reject) => {
-    AuthorsData.findOneAndUpdate({
-        _id: id 
-    }, {
-        "$set" : {name: name} 
-    }, 
-    (err, result) => {
-        if(err) reject(err);
         else resolve(result);
     });
 });
@@ -127,11 +140,23 @@ const resolvers = {
         }
     },
     Mutation: {
-        updateBook: (_,args) => {
+        updateBook: (_, args) => {
             return Promise.all([
                 updateBook(args.id, args.title),
-                updateAuthor(args.authorId, args.author)
-            ]).then(result => result[0])
+                updateAuthor(args.authorId, args.author),
+            ]).then(response => {
+                const result = [];
+                console.log('updateBook - updateBook', response, 'one', response);
+                result.push({
+                    id: response[0]._id.toString(),
+                    title: response[0].title,
+                    author: {
+                        id: response[1]._id.toString(),
+                        name: response[1].name
+                    }
+                });
+                return result[0];
+            })
                 .catch(error => console.log('updateBook - error', error));
         },
         addBook: (_, args) => {
@@ -140,7 +165,19 @@ const resolvers = {
             return Promise.all([
                 addBook(args.title, authorId, bookId),
                 addAuthor(args.author, bookId, authorId)
-            ]).then(result => result[0])
+            ]).then(response => {
+                const result = [];
+                console.log('addBook - addBook', response);
+                result.push({
+                    id: response[0]._id.toString(),
+                    title: response[0].title,
+                    author: {
+                        id: response[1]._id.toString(),
+                        name: response[1].name
+                    }
+                });
+                return result[0];
+            })
             .catch(error => console.log('error', error));
         },
         deleteBook: (_, args) => {

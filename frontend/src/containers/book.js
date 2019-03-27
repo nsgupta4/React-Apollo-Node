@@ -8,7 +8,7 @@ import { Button, ButtonGroup } from 'reactstrap';
 import UpdateModal from './modal';
 import './style.css';
 
-const GET_BOOKS = gql`
+export const GET_BOOKS = gql`
   {
     allBooks {
       id

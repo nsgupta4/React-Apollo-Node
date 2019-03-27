@@ -17,23 +17,29 @@ import {
 import validate from '../components/validate';
 import gql from 'graphql-tag';
 import { Mutation } from "react-apollo";
+import { GET_BOOKS } from './book';
 import './style.css';
 
 class AddBook extends React.Component {
 	render () {
-		const handleForm = (values, mutate, data) => {
-			console.log('handleForm', data);
+		const handleForm = (values, mutate) => {
+			const { reset } = this.props;
       mutate({ 
-				variables: { 
+				variables: {
 					title: values.Title,
 					author: values.Author,
-				} 
-			});
+				},
+				refetchQueries: [{
+					query: GET_BOOKS,
+				}],
+			}).then(() => reset())
   	};
-  	const { handleSubmit, pristine } = this.props;
+		const { handleSubmit, pristine } = this.props;
+		const book = {};
 		return (
 			<React.Fragment>
-				<Mutation mutation={
+				<Mutation
+					mutation={
 					gql `mutation addBook($title: String!, $author: String!) {
 									addBook(title: $title, author: $author) {
 											id
@@ -44,7 +50,25 @@ class AddBook extends React.Component {
 											}
 									}
 							}
-					`}>
+					`}
+					// update={(proxy, { data: { addBook } }) => {
+					// 	try {
+					// 		const data = proxy.readQuery({ query: GET_BOOKS });
+					// 		data.allBooks.push(addBook);
+					// 		proxy.writeQuery({ query: GET_BOOKS, data });
+					// 		console.log('update-proxy', proxy, 'addBook', addBook, 'allBooks', data);
+					// 	}
+					// 	catch (error) {
+					// 		console.error(error);
+					// 	}
+					// 	// const { allBooks } = cache.readQuery({ query: GET_BOOKS });
+					// 	// cache.writeQuery({
+					// 	// 	query: GET_BOOKS,
+					// 	// 	data: { allBooks: allBooks.push(addBook) }
+					// 	// });
+					// 	// console.log('update-cache', cache, 'addBook', addBook, 'allBooks', allBooks);
+					// }}	
+				>
 					{(mutate, { data }) => (					
 						<Row>
 							<Col md="4">

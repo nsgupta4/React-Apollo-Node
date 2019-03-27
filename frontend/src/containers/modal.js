@@ -4,9 +4,6 @@ import {
     Modal,
     ModalHeader,
     ModalBody,
-    ModalFooter,
-    Row,
-    Col,
 } from 'reactstrap';
 import {
     connect
@@ -21,6 +18,7 @@ import gql from 'graphql-tag';
 import {
     Mutation
 } from "react-apollo";
+import { GET_BOOKS } from './book';
 
 const updateMutation = gql `mutation updateBook($id: String!, $authorId: String!, $title: String!, $author: String!) {
 	updateBook(id: $id, authorId: $authorId, title: $title, author: $author) {
@@ -35,6 +33,7 @@ const updateMutation = gql `mutation updateBook($id: String!, $authorId: String!
 
 const deleteMutation = gql `mutation deleteBook($id: String!, $authorId: String!) {
 	deleteBook(id: $id, authorId: $authorId) {
+			id
 			title
 	}
 }`;
@@ -65,21 +64,25 @@ class UpdateModal extends React.Component {
 		props.book.title && props.initialize(initData);
 	}
 	handleForm = (values, mutate, data) => {
-		const { book, deleteToggle } = this.props;
+		const { book, deleteToggle, toggle } = this.props;
 		console.log('handleForm', this.props, values, data);
 		deleteToggle ? mutate({
 			variables: {
 				id: book.bookId,
 				authorId: book.authorId,
-			}
-		}) : mutate({
+			},
+			// refetchQueries: [{
+			// 	query: GET_BOOKS,
+			// }],
+		}).then(() => toggle())
+			: mutate({
 			variables: {
 				id: book.bookId,
 				authorId: book.authorId,
 				title: values.title,
 				author: values.author,
-			}
-		});
+			},
+		}).then(() => toggle());
 	};
 
 	render () {
@@ -94,9 +97,21 @@ class UpdateModal extends React.Component {
     return (
       <div>
         <Modal isOpen={modal} toggle={toggle} className={this.props.className}>
-          <ModalHeader toggle={toggle}>Modal title</ModalHeader>
+          <ModalHeader toggle={toggle}>Update & delete book</ModalHeader>
           <ModalBody>
-            <Mutation mutation={book && !book.author ? deleteMutation : updateMutation}>
+						<Mutation
+							mutation={book && !book.author ? deleteMutation : updateMutation}
+							update={(cache, { data: { deleteBook } }) => {
+								if (book && !book.author) {
+									console.log('update-cache', cache);
+									const { allBooks } = cache.readQuery({ query: GET_BOOKS });
+									cache.writeQuery({
+										query: GET_BOOKS,
+										data: { allBooks: allBooks.filter(e => e.id !== book.bookId) }
+									});
+								}
+							}}
+						>
 						{(mutate, { data }) => {
 					 		return (
 								 <React.Fragment>
@@ -113,22 +128,18 @@ class UpdateModal extends React.Component {
 												type="text"
 												placeholder="author"
 											/>
-											<Row>
-												<Col md="4">
-												</Col>
-												<Col md="4">
+												<div md="4" className="text-center button_primary">
 													<Button type="submit" disabled={pristine}>
 														Update
 													</Button>
-												</Col>
-												<Col md="4">
-												</Col>
-											</Row>
+												</div>
 										</form> : 
 										<div>
 											<form onSubmit={handleSubmit((values) => this.handleForm(values, mutate, data))}>
-											<p>Are you sure?</p>
-											<Button color="danger">Delete</Button>
+												<p>Are you sure?</p>
+												<div className="text-center button_primary">
+													<Button color="danger">Delete</Button>
+												</div>
 											</form>
 										</div>
 									}
@@ -136,11 +147,8 @@ class UpdateModal extends React.Component {
 							)}
 						}			
     				</Mutation>
-          </ModalBody>
-					<ModalFooter>
-            <Button color="secondary" onClick={toggle}>Cancel</Button>
-          </ModalFooter>
-        </Modal>
+					</ModalBody>
+				</Modal>
       </div>
 		);
 	}
