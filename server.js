@@ -23,7 +23,7 @@ server.applyMiddleware({
     app,
     path: '/graphql'
 });
-// app.use(cors());
+app.use(cors());
 // app.use('/graphiql', bodyParser.json(), graphiqlExpress({
 //     endpointURL: '/graphiql'
 // }));

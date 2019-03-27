@@ -34,6 +34,15 @@ const deleteBook = (id) => new Promise((resolve, reject) => {
     });
 });
 
+const deleteAuthor = (id) => new Promise((resolve, reject) => {
+    AuthorsData.findByIdAndRemove({
+        "_id": id
+    }, (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+    });
+});
+
 const addAuthor = (name, booksId, authorId) => new Promise((resolve, reject) => {
     AuthorsData.create({
         name,
@@ -48,11 +57,11 @@ const addAuthor = (name, booksId, authorId) => new Promise((resolve, reject) => 
     });
 });
 
-const updateAuthor = (id, title) => new Promise((resolve, reject) => {
-    BooksData.findOneAndUpdate({
+const updateAuthor = (id, name) => new Promise((resolve, reject) => {
+    AuthorsData.findOneAndUpdate({
         _id: id 
     }, {
-        "$set" : {title: title} 
+        "$set" : {name: name} 
     }, 
     (err, result) => {
         if(err) reject(err);
@@ -63,34 +72,49 @@ const updateAuthor = (id, title) => new Promise((resolve, reject) => {
 const resolvers = {
     Query: {
         allBooks: async () => {
-            console.log('-==-=-=', BooksData.aggregate([
-                {
-                    $lookup: {
-                        from: "AuthorsData",
-                        localField: "_id",
-                        foreignField: "booksId",
-                        as: "collection"
-                    },
-                },
-                {
-                    $unwind: "$collection"
-                },
-                {
-                    $project: {
-                        __v: 0,
-                        "collection.__v": 0,
-                        "collection._id": 1,
-                        "collection.booksId": 1,
-                        "collection.name": 1
-                    }
-                },
-            ]).then(res  => {
-                console.log('res', res);   
-            }).catch(err => {
-                console.log('err', err);
-            }));
+            // console.log('-==-=-=',);
+            // const res = BooksData.aggregate([
+            //     {
+            //         $lookup: {
+            //             from: "AuthorsData",
+            //             localField: "_id",
+            //             foreignField: "booksId",
+            //             as: "collection"
+            //         },
+            //     },
+            //     {
+            //         $unwind: "$collection"
+            //     },
+            //     // {
+            //     //     $project: {
+            //     //         __v: "",
+            //     //         "collection.__v": "",
+            //     //         "collection._id": "",
+            //     //         "collection.booksId": "",
+            //     //         "collection.name": ""
+            //     //     }
+            //     // },
+            // ]);
+            // console.log('response', res);
+            // .then(res  => {
+            //     console.log('res', res);   
+            // }).catch(err => {
+            //     console.log('err', err);
+            // }));
             const res = await BooksData.find().populate('authorId').exec();
-            return res;
+            const result = [];
+            // (err, users) => console.log('users -err', err, users)
+            res.map(item => {
+                result.push({
+                    id: item._id.toString(),
+                    title: item.title,
+                    author: {
+                        id: item.authorId._id.toString(),
+                        name: item.authorId.name,
+                    }});
+            })
+            console.log('ha ha ', result);
+            return result;
         },
         book: (_, args) => {
             return BooksData.findOne({ title: args.title });
@@ -99,15 +123,16 @@ const resolvers = {
             return AuthorsData.find({});
         },
         author: (_, args) => {
-            return AuthorsData.findOne({ name: args.name});
+            return AuthorsData.findOne({ id: args.id});
         }
     },
     Mutation: {
         updateBook: (_,args) => {
             return Promise.all([
-                updateBook(args.id, args.title)
+                updateBook(args.id, args.title),
+                updateAuthor(args.authorId, args.author)
             ]).then(result => result[0])
-            .catch(error => console.log('error', error));
+                .catch(error => console.log('updateBook - error', error));
         },
         addBook: (_, args) => {
             const authorId = mongoose.Types.ObjectId();
@@ -120,7 +145,8 @@ const resolvers = {
         },
         deleteBook: (_, args) => {
             return Promise.all([
-                deleteBook(args.id)
+                deleteBook(args.id),
+                deleteAuthor(args.authorId)
             ])
             .then(result => result[0])
             .catch(error => console.log('error delete', error));
